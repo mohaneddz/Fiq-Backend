@@ -63,3 +63,7 @@ class DatabaseManager:
         """Initialize database schema from SQL string."""
         with self.get_cursor() as cursor:
             cursor.executescript(schema_sql)
+    
+    def close(self):
+        """Alias for close_connection to support cleanup patterns."""
+        self.close_connection()
