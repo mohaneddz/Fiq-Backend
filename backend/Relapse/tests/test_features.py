@@ -7,16 +7,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 import pytest
 import numpy as np
-from Relapse.core.features import FeatureEngineer
+from Relapse.core.features import FeatureEngineering
 
 
-class TestFeatureEngineer:
-    """Test FeatureEngineer class."""
+class TestFeatureEngineering:
+    """Test FeatureEngineering class."""
     
     @pytest.fixture
     def feature_engineer(self):
-        """Create FeatureEngineer instance."""
-        return FeatureEngineer()
+        """Create FeatureEngineering instance."""
+        return FeatureEngineering()
     
     @pytest.fixture
     def sample_input(self):
@@ -34,13 +34,13 @@ class TestFeatureEngineer:
         }
     
     def test_extract_features_returns_dict(self, feature_engineer, sample_input):
-        """Test that extract_features returns a dictionary."""
-        features = feature_engineer.extract_features(sample_input)
+        """Test that engineer_features returns a dictionary."""
+        features = feature_engineer.engineer_features(sample_input)
         assert isinstance(features, dict)
     
     def test_all_six_features_present(self, feature_engineer, sample_input):
         """Test that all 6 required features are extracted."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         
         required_features = [
             'days_clean',
@@ -56,13 +56,13 @@ class TestFeatureEngineer:
     
     def test_days_clean_feature(self, feature_engineer, sample_input):
         """Test days_clean feature extraction."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         assert features['days_clean'] == 30
         assert isinstance(features['days_clean'], (int, float))
     
     def test_craving_trend_calculation(self, feature_engineer, sample_input):
         """Test craving_trend is calculated correctly."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         
         # Should be rolling average
         expected_avg = np.mean(sample_input['craving_scores'])
@@ -70,7 +70,7 @@ class TestFeatureEngineer:
     
     def test_sleep_deviation_calculation(self, feature_engineer, sample_input):
         """Test sleep_deviation is calculated correctly."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         
         # Should be standard deviation
         expected_std = np.std(sample_input['sleep_hours'])
@@ -78,7 +78,7 @@ class TestFeatureEngineer:
     
     def test_trigger_count_feature(self, feature_engineer, sample_input):
         """Test trigger_count feature extraction."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         
         # Should count triggers within window (e.g., 7 days)
         assert features['trigger_count'] >= 0
@@ -86,12 +86,12 @@ class TestFeatureEngineer:
     
     def test_support_sessions_feature(self, feature_engineer, sample_input):
         """Test support_sessions feature extraction."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         assert features['support_sessions'] == 2
     
     def test_medication_adherence_calculation(self, feature_engineer, sample_input):
         """Test medication_adherence percentage calculation."""
-        features = feature_engineer.extract_features(sample_input)
+        features = feature_engineer.engineer_features(sample_input)
         
         expected = (9 / 10) * 100  # 90%
         assert abs(features['medication_adherence'] - expected) < 0.01
@@ -107,7 +107,7 @@ class TestFeatureEngineer:
             "medication_adherence": {"doses_taken": 5, "doses_prescribed": 5}
         }
         
-        features = feature_engineer.extract_features(input_data)
+        features = feature_engineer.engineer_features(input_data)
         assert 'craving_trend' in features
         assert features['craving_trend'] == 0 or not np.isnan(features['craving_trend'])
     
@@ -122,19 +122,19 @@ class TestFeatureEngineer:
             "medication_adherence": {"doses_taken": 0, "doses_prescribed": 0}
         }
         
-        features = feature_engineer.extract_features(input_data)
+        features = feature_engineer.engineer_features(input_data)
         # Should handle division by zero gracefully
         assert 'medication_adherence' in features
         assert features['medication_adherence'] >= 0
     
-    def test_features_to_array(self, feature_engineer, sample_input):
-        """Test converting features dict to array."""
-        features = feature_engineer.extract_features(sample_input)
-        feature_array = feature_engineer.features_to_array(features)
+    def test_features_dict_values(self, feature_engineer, sample_input):
+        """Test that features contain valid numeric values."""
+        features = feature_engineer.engineer_features(sample_input)
         
-        assert isinstance(feature_array, np.ndarray)
-        assert feature_array.shape == (1, 6)  # 6 features
-        assert not np.isnan(feature_array).any()
+        # Check all features are numeric and not NaN
+        for key, value in features.items():
+            assert isinstance(value, (int, float))
+            assert not np.isnan(value)
 
 
 if __name__ == '__main__':
