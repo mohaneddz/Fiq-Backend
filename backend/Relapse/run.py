@@ -1,0 +1,20 @@
+"""
+Run script for Relapse service.
+"""
+import sys
+import os
+
+# Add parent directory to path to find Relapse module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from Relapse.app import create_app
+from Relapse import config
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(
+        host="0.0.0.0",
+        port=config.SERVICE_PORT,
+        debug=config.DEBUG,
+        threaded=True
+    )
