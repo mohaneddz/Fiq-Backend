@@ -107,6 +107,7 @@ def health():
 def chat():
     """Main chat endpoint with full agent execution."""
     request_id = generate_request_id()
+    trace_id = request_id  # Use request_id as trace_id for the session
     start_time = time()
     
     try:
@@ -120,9 +121,9 @@ def chat():
                 request_id=request_id
             ).to_dict()), 400
         
-        # Execute agent
+        # Execute agent with trace_id
         agent = get_agent()
-        result = agent.chat(user_message, user_id=user_id)
+        result = agent.chat(user_message, user_id=user_id, request_id=request_id, trace_id=trace_id)
         
         # Validate response schema
         if "response" in result and isinstance(result["response"], dict):
@@ -131,13 +132,20 @@ def chat():
             # Fallback if response structure is completely wrong
             result["response"] = get_fallback_response()
         
-        # Log request
+        # Calculate result size
+        import sys, json
+        result_size = sys.getsizeof(json.dumps(result))
+        
+        # Log request (only once, not duplicate)
         latency_ms = (time() - start_time) * 1000
         current_app.logger_instance.log_request(
             request_id=request_id,
+            trace_id=trace_id,
             endpoint="/chat",
             status="success",
-            latency_ms=latency_ms
+            status_code=200,
+            latency_ms=latency_ms,
+            result_size_bytes=result_size
         )
         
         return jsonify(APIResponse.success(
@@ -149,10 +157,14 @@ def chat():
         latency_ms = (time() - start_time) * 1000
         current_app.logger_instance.log_request(
             request_id=request_id,
+            trace_id=trace_id,
             endpoint="/chat",
             status="error",
+            status_code=500,
             latency_ms=latency_ms,
-            error=str(e)
+            error=str(e),
+            error_code="CHAT_ERROR",
+            error_type=type(e).__name__
         )
         return jsonify(APIResponse.error(
             str(e),

@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from shared.db import DatabaseManager
+from shared.supabase_db import SupabaseManager
 from Chat import config
 
 
@@ -13,7 +13,7 @@ class DrugLookupTool:
     """Tool to lookup drug information from database."""
     
     def __init__(self):
-        self.db = DatabaseManager(config.DRUGS_DB_PATH)
+        self.db = SupabaseManager(table_name="drugs")
     
     def run(self, drug_name: str) -> dict:
         """
@@ -26,12 +26,20 @@ class DrugLookupTool:
             Dictionary with drug information or error
         """
         try:
-            query = """
-                SELECT * FROM drugs 
-                WHERE LOWER(name) = LOWER(?) OR LOWER(common_name) LIKE LOWER(?)
-                LIMIT 1
-            """
-            results = self.db.execute_query(query, (drug_name, f"%{drug_name}%"))
+            # Try exact match first
+            results = self.db.select(
+                columns="*",
+                ilike_filters={"name": drug_name},
+                limit=1
+            )
+            
+            # If no exact match, try common_name LIKE match
+            if not results:
+                results = self.db.select(
+                    columns="*",
+                    ilike_filters={"common_name": f"%{drug_name}%"},
+                    limit=1
+                )
             
             if results:
                 return {"found": True, "drug": results[0]}
@@ -50,7 +58,7 @@ class HistoryLookupTool:
     """Tool to lookup user medical history."""
     
     def __init__(self):
-        self.db = DatabaseManager(config.HISTORY_DB_PATH)
+        self.db = SupabaseManager(table_name="encounters")
     
     def run(self, user_id: str) -> dict:
         """
@@ -63,13 +71,13 @@ class HistoryLookupTool:
             Dictionary with encounter history or error
         """
         try:
-            query = """
-                SELECT * FROM encounters 
-                WHERE user_id = ?
-                ORDER BY encounter_date DESC
-                LIMIT 10
-            """
-            results = self.db.execute_query(query, (user_id,))
+            results = self.db.select(
+                columns="*",
+                filters={"user_id": user_id},
+                order_by="encounter_date",
+                order_desc=True,
+                limit=10
+            )
             
             return {
                 "found": True,

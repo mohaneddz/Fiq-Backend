@@ -107,7 +107,7 @@ class ChatAgent:
             },
         ]
 
-    def chat(self, user_message: str, user_id: Optional[str] = None, request_id: Optional[str] = None) -> Dict[str, Any]:
+    def chat(self, user_message: str, user_id: Optional[str] = None, request_id: Optional[str] = None, trace_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Full agent execution:
         - LLM decides tools
@@ -115,6 +115,9 @@ class ChatAgent:
         - returns final JSON object ONLY (no tool traces)
         """
         try:
+            # Use request_id as trace_id if not provided
+            trace_id = trace_id or request_id
+            
             # Add user message to history
             self.conversation_history.append({"role": "user", "content": user_message})
 
@@ -170,7 +173,7 @@ class ChatAgent:
                     if fn == "lookup_history" and (not args.get("user_id")) and user_id:
                         args["user_id"] = user_id
 
-                    result = self.execute_tool(fn, request_id=request_id, **args)
+                    result = self.execute_tool(fn, request_id=request_id, trace_id=trace_id, **args)
 
                     messages.append(
                         {
@@ -207,23 +210,34 @@ class ChatAgent:
                 },
             }
 
-    def execute_tool(self, tool_name: str, request_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
-        """Execute a specific tool by name with logging."""
+    def execute_tool(self, tool_name: str, request_id: Optional[str] = None, trace_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+        """Execute a specific tool by name with comprehensive logging."""
         start_time = time()
         status = "success"
+        status_code = 200
         result = None
+        error_code = None
+        error_type = None
+        
+        # Generate span ID for this tool call
+        import uuid
+        span_id = f"tool-{uuid.uuid4().hex[:8]}"
         
         # Sanitize args for logging (remove sensitive data if needed)
         log_args = {
-            k: v if k not in ["user_id"] else "***" for k, v in kwargs.items() if k != "request_id"
+            k: v if k not in ["user_id"] else "***" for k, v in kwargs.items() if k not in ["request_id", "trace_id"]
         }
         
         try:
             if tool_name == "lookup_drug":
                 result = self.tools["lookup_drug"].run(kwargs.get("drug_name", ""))
+                if not result.get("found"):
+                    status_code = 404
 
             elif tool_name == "lookup_history":
                 result = self.tools["lookup_history"].run(kwargs.get("user_id", ""))
+                if not result.get("found"):
+                    status_code = 404
 
             elif tool_name == "rag_query":
                 results = self.rag.query(kwargs.get("query", ""))
@@ -235,21 +249,40 @@ class ChatAgent:
             
             else:
                 status = "error"
+                status_code = 500
+                error_code = "UNKNOWN_TOOL"
+                error_type = "ConfigurationError"
                 result = {"error": f"Unknown tool: {tool_name}"}
         
         except Exception as e:
             status = "error"
+            status_code = 500
+            error_code = "TOOL_EXECUTION_ERROR"
+            error_type = type(e).__name__
             result = {"error": str(e)}
         
         finally:
-            # Log tool execution
+            # Calculate actual latency
             latency_ms = (time() - start_time) * 1000
+            
+            # Calculate result size
+            import sys
+            result_size = sys.getsizeof(json.dumps(result)) if result else 0
+            
+            # Log tool execution with full tracing
             self.logger.log_request(
-                request_id=request_id or "unknown",
+                request_id=span_id,
+                trace_id=trace_id or request_id or "unknown",
+                parent_span_id=request_id,  # Parent is the main request
                 endpoint="execute_tool",
                 tool=tool_name,
                 status=status,
-                latency_ms=round(latency_ms, 2),
+                status_code=status_code,
+                latency_ms=latency_ms,
+                error=result.get("error") if result and "error" in result else None,
+                error_code=error_code,
+                error_type=error_type,
+                result_size_bytes=result_size,
                 metadata={
                     "args": log_args
                 }

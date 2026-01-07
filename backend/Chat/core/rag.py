@@ -11,7 +11,7 @@ import faiss
 import numpy as np
 import pickle
 from Chat import config
-from shared.db import DatabaseManager
+from shared.supabase_db import SupabaseManager
 
 
 class RAGEngine:
@@ -21,7 +21,7 @@ class RAGEngine:
         self.embedding_model = None
         self.index = None
         self.documents = []
-        self.db = DatabaseManager(config.DRUGS_DB_PATH)
+        self.db = SupabaseManager(table_name="drugs")
         
         # Load or create vector store
         if os.path.exists(config.VECTOR_STORE_PATH):
@@ -44,7 +44,7 @@ class RAGEngine:
         """
         try:
             # Fetch all drugs from database
-            drugs = self.db.execute_query("SELECT * FROM drugs")
+            drugs = self.db.select(columns="*")
             
             if not drugs:
                 return {"status": "error", "message": "No drugs found in database"}
