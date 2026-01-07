@@ -10,7 +10,7 @@ SERVICE_PORT = 5002
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 # Logging
-LOG_FILE = os.path.join(os.path.dirname(__file__), "history.log")
+LOG_FILE = os.path.join(os.path.dirname(__file__), "..", "shared", "logs", "relapse.log")
 
 # Model configuration
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
