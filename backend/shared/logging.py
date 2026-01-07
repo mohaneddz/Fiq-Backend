@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 class JSONLogger:
-    """Structured logger that outputs JSON lines."""
+    """Structured logger that outputs JSON lines with distributed tracing support."""
     
     def __init__(self, log_file: str, service_name: str):
         self.log_file = Path(log_file)
@@ -34,22 +34,34 @@ class JSONLogger:
         self,
         request_id: str,
         endpoint: str,
+        trace_id: Optional[str] = None,
+        parent_span_id: Optional[str] = None,
         tool: Optional[str] = None,
         status: str = "success",
+        status_code: Optional[int] = None,
         latency_ms: Optional[float] = None,
         error: Optional[str] = None,
+        error_code: Optional[str] = None,
+        error_type: Optional[str] = None,
+        result_size_bytes: Optional[int] = None,
         metadata: Optional[Dict[str, Any]] = None
     ):
-        """Log a request in JSON format."""
+        """Log a request in JSON format with full tracing support."""
         log_entry = {
             "ts": datetime.utcnow().isoformat() + "Z",
             "service": self.service_name,
             "request_id": request_id,
+            "trace_id": trace_id or request_id,  # Use request_id as trace_id if not provided
+            "parent_span_id": parent_span_id,
             "endpoint": endpoint,
             "tool": tool,
             "status": status,
-            "latency_ms": latency_ms,
-            "error": error
+            "status_code": status_code,
+            "latency_ms": round(latency_ms, 2) if latency_ms is not None else None,
+            "error": error,
+            "error_code": error_code,
+            "error_type": error_type,
+            "result_size_bytes": result_size_bytes
         }
         
         if metadata:
