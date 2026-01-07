@@ -9,13 +9,13 @@ SERVICE_NAME = "chat"
 SERVICE_PORT = 5001
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
-# Database paths
+# Database configuration (Supabase)
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-DRUGS_DB_PATH = os.path.join(DATA_DIR, "drugs.db")
-HISTORY_DB_PATH = os.path.join(DATA_DIR, "history.db")
+# Database now uses Supabase - see shared/supabase_db.py
+# Requires environment variables: DB_URL, SERVICE_ROLE_KEY
 
 # Logging
-LOG_FILE = os.path.join(os.path.dirname(__file__), "history.log")
+LOG_FILE = os.path.join(os.path.dirname(__file__), "..", "shared", "logs", "chat.log")
 
 # LLM configuration
 LLM_MODEL = "llama-3.3-70b-versatile"  # Groq model

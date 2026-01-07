@@ -19,6 +19,9 @@ def setup_test_environment():
     if not os.getenv("GROQ_API_KEY"):
         pytest.skip("GROQ_API_KEY not set - skipping tests requiring API")
     
+    if not os.getenv("DB_URL") or not os.getenv("SERVICE_ROLE_KEY"):
+        pytest.skip("Supabase credentials not set - skipping tests requiring database")
+    
     yield
     
     # Cleanup after tests
