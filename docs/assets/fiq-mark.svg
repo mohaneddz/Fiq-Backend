@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="FiQ mark">
+  <defs><linearGradient id="g" x1="20" y1="16" x2="108" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+  <path d="M64 10 110 28v33c0 29-19 48-46 57C37 109 18 90 18 61V28L64 10Z" fill="url(#g)"/>
+  <path d="M44 64h14l7-18 10 36 7-18h10" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+</svg>
