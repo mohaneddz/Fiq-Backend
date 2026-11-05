@@ -1,3 +1,5 @@
+![FiQ Backend cover](screenshots/cover.avif)
+
 <h1>
   <img src="docs/assets/fiq-mark.svg" alt="FiQ icon" width="42" />
   FiQ Backend
